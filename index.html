@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VECTOR SERIOUS GAMES | Тактические игры в Roblox</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Скрытая кнопка админ-доступа -->
+    <div class="admin-access-hidden" onclick="showAdminLogin()">
+        <i class="fas fa-lock"></i>
+    </div>
+
+    <!-- Кнопка Discord входа/Профиль -->
+    <div class="discord-login-btn" id="discordBtn" onclick="showDiscordLogin()">
+        <i class="fab fa-discord"></i> Войти через Discord
+    </div>
+
+    <!-- Уведомления -->
+    <div id="notificationsContainer" class="notifications-container"></div>
+
+    <!-- Боковая панель -->
+    <aside class="sidebar">
+        <div class="logo" onclick="switchSection('home')">
+            <h1>VECTOR</h1>
+            <p class="tagline">серьезные игры</p>
+        </div>
+        
+        <nav class="nav">
+            <ul>
+                <li><a href="#" class="nav-link" data-section="home">
+                    <i class="fas fa-home"></i>
+                    <span>Главная</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-section="news">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Новости</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-section="schedule">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Расписание</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-section="rules">
+                    <i class="fas fa-book"></i>
+                    <span>Правила</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-section="teams">
+                    <i class="fas fa-users"></i>
+                    <span>Команды</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-section="faq">
+                    <i class="fas fa-question-circle"></i>
+                    <span>FAQ</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-section="profile" id="profileNavLink" style="display: none;">
+                    <i class="fas fa-user"></i>
+                    <span>Профиль</span>
+                </a></li>
+            </ul>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="social-buttons">
+                <a href="https://discord.gg/" target="_blank" class="social-btn discord-btn">
+                    <i class="fab fa-discord"></i> Discord
+                </a>
+                <a href="https://youtube.com/" target="_blank" class="social-btn youtube-btn">
+                    <i class="fab fa-youtube"></i> YouTube
+                </a>
+            </div>
+            <div class="user-status" id="userStatus">
+                <i class="fas fa-user"></i>
+                <span>Не авторизован</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <!-- Заголовок раздела -->
+        <div class="content-header" id="contentHeader">
+            <h2 id="sectionTitle">ГЛАВНАЯ</h2>
+            <p class="subtitle" id="sectionSubtitle">Добро пожаловать в VECTOR SERIOUS GAMES</p>
+        </div>
+
+        <!-- Контейнер для контента разных разделов -->
+        <div class="content-container">
+            <!-- Главная страница -->
+            <div class="section-content active" id="homeSection">
+                <!-- ... (остается без изменений) ... -->
+            </div>
+
+            <!-- Новости -->
+            <div class="section-content" id="newsSection">
+                <div class="news-feed" id="newsFeed">
+                    <!-- Новости будут загружены через JavaScript -->
+                </div>
+            </div>
+
+            <!-- Расписание -->
+            <div class="section-content" id="scheduleSection">
+                <div class="schedule-container" id="scheduleContainer">
+                    <!-- Расписание будет загружено через JavaScript -->
+                </div>
+            </div>
+
+            <!-- Правила -->
+            <div class="section-content" id="rulesSection">
+                <div class="rules-container" id="rulesContainer">
+                    <!-- Правила будут загружены через JavaScript -->
+                </div>
+            </div>
+
+            <!-- Команды -->
+            <div class="section-content" id="teamsSection">
+                <div class="teams-container" id="teamsContainer">
+                    <!-- Команды будут загружены через JavaScript -->
+                </div>
+            </div>
+
+            <!-- FAQ -->
+            <div class="section-content" id="faqSection">
+                <div class="faq-container" id="faqContainer">
+                    <!-- FAQ будет загружено через JavaScript -->
+                </div>
+            </div>
+
+            <!-- Профиль -->
+            <div class="section-content" id="profileSection">
+                <div class="profile-container">
+                    <h3><i class="fas fa-user"></i> Профиль игрока</h3>
+                    
+                    <div class="profile-header">
+                        <div class="profile-avatar" id="profileAvatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="profile-info">
+                            <h4 id="profileUsername">Гость</h4>
+                            <div class="profile-badges">
+                                <span class="badge" id="profileRank">Новичок</span>
+                                <span class="badge discord-badge" id="discordConnected">
+                                    <i class="fab fa-discord"></i> Discord
+                                </span>
+                            </div>
+                            <div class="profile-stats">
+                                <div class="stat-item">
+                                    <i class="fas fa-gamepad"></i>
+                                    <span>Игр сыграно: <strong id="gamesPlayed">0</strong></span>
+                                </div>
+                                <div class="stat-item">
+                                    <i class="fas fa-trophy"></i>
+                                    <span>Побед: <strong id="gamesWon">0</strong></span>
+                                </div>
+                                <div class="stat-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Часов в игре: <strong id="hoursPlayed">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-sections">
+                        <!-- Активность -->
+                        <div class="profile-section">
+                            <h5><i class="fas fa-history"></i> Последняя активность</h5>
+                            <div class="activity-list" id="activityList">
+                                <div class="activity-item">
+                                    <div class="activity-icon">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <div class="activity-title">Регистрация на сайте</div>
+                                        <div class="activity-time">Только что</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Команды игрока -->
+                        <div class="profile-section">
+                            <h5><i class="fas fa-users"></i> Мои команды</h5>
+                            <div class="player-teams" id="playerTeams">
+                                <div class="team-membership">
+                                    <div class="team-info">
+                                        <div class="team-name">Не в команде</div>
+                                        <div class="team-role">Игрок</div>
+                                    </div>
+                                    <button class="btn btn-small" onclick="switchSection('teams')">
+                                        <i class="fas fa-search"></i> Найти команду
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Статистика -->
+                        <div class="profile-section">
+                            <h5><i class="fas fa-chart-line"></i> Статистика</h5>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="kdRatio">0.00</div>
+                                    <div class="stat-label">K/D Ratio</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="accuracy">0%</div>
+                                    <div class="stat-label">Точность</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="survivalRate">0%</div>
+                                    <div class="stat-label">Выживаемость</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="rating">0</div>
+                                    <div class="stat-label">Рейтинг</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Настройки профиля -->
+                        <div class="profile-section">
+                            <h5><i class="fas fa-cog"></i> Настройки</h5>
+                            <div class="profile-settings">
+                                <button class="btn btn-secondary" onclick="disconnectDiscord()">
+                                    <i class="fas fa-unlink"></i> Отключить Discord
+                                </button>
+                                <button class="btn btn-danger" onclick="logout()">
+                                    <i class="fas fa-sign-out-alt"></i> Выйти
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Админ-панель -->
+            <div class="section-content" id="adminSection">
+                <!-- ... (остается без изменений) ... -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Модальные окна -->
+    <div class="modal" id="adminLoginModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-lock"></i> Доступ к админ-панели</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="password" id="adminPassword" class="form-control" placeholder="Введите пароль">
+                </div>
+                <div id="loginMessage" class="message"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="checkAdminPassword()">
+                    <i class="fas fa-sign-in-alt"></i> Войти
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="discordLoginModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fab fa-discord"></i> Вход через Discord</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="discord-login-content">
+                    <div class="discord-icon">
+                        <i class="fab fa-discord"></i>
+                    </div>
+                    <h4>Авторизация через Discord OAuth2</h4>
+                    <p>Для использования всех функций сайта требуется авторизация через Discord.</p>
+                    
+                    <div class="discord-benefits">
+                        <div class="benefit">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Автоматическая регистрация на игры</span>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Доступ к закрытым каналам Discord</span>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Отслеживание статистики</span>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Участие в рейтинге игроков</span>
+                        </div>
+                    </div>
+
+                    <div class="oauth-info">
+                        <p><small>При нажатии кнопки вы будете перенаправлены на страницу авторизации Discord</small></p>
+                    </div>
+                    
+                    <div id="discordMessage" class="message"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-discord" onclick="startDiscordOAuth()">
+                    <i class="fab fa-discord"></i> Авторизоваться через Discord
+                </button>
+                <button class="btn btn-secondary" onclick="simulateDiscordLogin()">
+                    <i class="fas fa-bolt"></i> Тестовый вход (без Discord)
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрытый input для импорта файлов -->
+    <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+
+    <script src="script.js"></script>
+</body>
+</html>
