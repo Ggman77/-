@@ -1610,4 +1610,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     console.log('VECTOR SERIOUS GAMES инициализирован');
+
+const firebaseConfig = {
+
+  apiKey: "AIzaSyC-RzJOwNEwh-TL5ZWIyTAwi6s8sxJe6tA",
+
+  authDomain: "vector-sgr.firebaseapp.com",
+
+  projectId: "vector-sgr",
+
+  storageBucket: "vector-sgr.firebasestorage.app",
+
+  messagingSenderId: "992636161479",
+
+  appId: "1:992636161479:web:fcec192986d43b5b7cdde2",
+
+  measurementId: "G-ZX1TXYWMMB"
+
+};
+};
 });
