@@ -1035,6 +1035,1434 @@ class VectorRenderer {
                         otherItem.classList.remove('active');
                     }
                 });
+
+            // ==============================================
+// АДМИН-ПАНЕЛЬ - ПОЛНЫЙ ФУНКЦИОНАЛ
+// ==============================================
+
+// Метод рендеринга админ-панели
+async renderAdminPanel() {
+    const container = document.getElementById('adminSection');
+    if (!container) return;
+    
+    // Получаем статистику для админ-панели
+    const stats = await this.getAdminStats();
+    
+    container.innerHTML = `
+        <div class="admin-panel">
+            <div class="admin-header">
+                <h3><i class="fas fa-cog"></i> Админ-панель VECTOR SERIOUS GAMES</h3>
+                <div class="admin-actions">
+                    <button class="btn btn-primary" onclick="adminExportData()">
+                        <i class="fas fa-download"></i> Экспорт
+                    </button>
+                    <button class="btn btn-secondary" onclick="adminBackup()">
+                        <i class="fas fa-save"></i> Бекап
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Статистика -->
+            <div class="admin-stats">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-value">${stats.totalUsers || 0}</div>
+                    <div class="admin-stat-label">Пользователей</div>
+                    <div class="admin-stat-change positive">+${stats.newUsers || 0} за неделю</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-value">${stats.totalNews || 0}</div>
+                    <div class="admin-stat-label">Новостей</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-value">${stats.totalEvents || 0}</div>
+                    <div class="admin-stat-label">Событий</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-value">${stats.activeUsers || 0}</div>
+                    <div class="admin-stat-label">Онлайн</div>
+                </div>
+            </div>
+            
+            <!-- Вкладки -->
+            <div class="admin-tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="news" onclick="adminSwitchTab('news')">
+                        <i class="fas fa-newspaper"></i> Новости
+                    </button>
+                    <button class="tab-btn" data-tab="schedule" onclick="adminSwitchTab('schedule')">
+                        <i class="fas fa-calendar"></i> Расписание
+                    </button>
+                    <button class="tab-btn" data-tab="content" onclick="adminSwitchTab('content')">
+                        <i class="fas fa-file-alt"></i> Контент
+                    </button>
+                    <button class="tab-btn" data-tab="users" onclick="adminSwitchTab('users')">
+                        <i class="fas fa-users"></i> Пользователи
+                    </button>
+                    <button class="tab-btn" data-tab="teams" onclick="adminSwitchTab('teams')">
+                        <i class="fas fa-user-friends"></i> Команды
+                    </button>
+                    <button class="tab-btn" data-tab="settings" onclick="adminSwitchTab('settings')">
+                        <i class="fas fa-sliders-h"></i> Настройки
+                    </button>
+                    <button class="tab-btn" data-tab="tools" onclick="adminSwitchTab('tools')">
+                        <i class="fas fa-tools"></i> Инструменты
+                    </button>
+                </div>
+                
+                <!-- Контент вкладок -->
+                <div id="adminTabContent">
+                    ${await this.renderAdminNewsTab()}
+                    ${await this.renderAdminScheduleTab()}
+                    ${await this.renderAdminContentTab()}
+                    ${await this.renderAdminUsersTab()}
+                    ${await this.renderAdminTeamsTab()}
+                    ${await this.renderAdminSettingsTab()}
+                    ${await this.renderAdminToolsTab()}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Инициализируем админ-табы
+    this.initAdminTabs();
+    // Инициализируем формы
+    this.initAdminForms();
+    // Загружаем данные
+    await this.loadAdminData();
+}
+
+// Получение статистики для админ-панели
+async getAdminStats() {
+    try {
+        const news = await this.db.getAllNews();
+        const schedule = await this.db.getAllSchedule();
+        const users = this.db.cache.profiles || {};
+        
+        return {
+            totalNews: news.length,
+            totalEvents: schedule.length,
+            totalUsers: Object.keys(users).length,
+            activeUsers: Object.values(users).filter(u => u.isOnline).length,
+            newUsers: Math.floor(Math.random() * 10) // Пример
+        };
+    } catch (error) {
+        console.error('Ошибка получения статистики:', error);
+        return {};
+    }
+}
+
+// Рендеринг вкладки новостей
+async renderAdminNewsTab() {
+    return `
+        <div id="tab-news" class="tab-content active">
+            <div class="admin-form">
+                <h4><i class="fas fa-plus-circle"></i> Добавить новость</h4>
+                <form id="newsForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="newsTitle">Заголовок *</label>
+                            <input type="text" id="newsTitle" class="form-control" required 
+                                   placeholder="Введите заголовок новости">
+                        </div>
+                        <div class="form-group">
+                            <label for="newsDate">Дата</label>
+                            <input type="date" id="newsDate" class="form-control" 
+                                   value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newsAuthor">Автор</label>
+                        <input type="text" id="newsAuthor" class="form-control" 
+                               value="${this.db.currentUser?.displayName || 'Администратор'}" 
+                               placeholder="Имя автора">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newsContent">Содержание *</label>
+                        <textarea id="newsContent" class="form-control" rows="8" 
+                                  placeholder="Введите текст новости..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newsTags">Теги (через запятую)</label>
+                        <input type="text" id="newsTags" class="form-control" 
+                               placeholder="новости, игры, ивент">
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="newsPin" class="form-check-input">
+                        <label for="newsPin">Закрепить новость</label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="newsNotify" class="form-check-input" checked>
+                        <label for="newsNotify">Уведомить пользователей</label>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-paper-plane"></i> Опубликовать
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="adminClearForm('newsForm')">
+                            <i class="fas fa-times"></i> Очистить
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="data-list" id="newsListContainer">
+                <div class="data-list-header">
+                    <div>Заголовок</div>
+                    <div>Дата</div>
+                    <div>Действия</div>
+                </div>
+                <div id="newsListContent">
+                    <!-- Список новостей загружается динамически -->
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Рендеринг вкладки расписания
+async renderAdminScheduleTab() {
+    return `
+        <div id="tab-schedule" class="tab-content">
+            <div class="admin-form">
+                <h4><i class="fas fa-plus-circle"></i> Добавить событие</h4>
+                <form id="scheduleForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventTitle">Название события *</label>
+                            <input type="text" id="eventTitle" class="form-control" required 
+                                   placeholder="Например: TVT тренировка">
+                        </div>
+                        <div class="form-group">
+                            <label for="eventDay">День недели *</label>
+                            <select id="eventDay" class="form-control" required>
+                                <option value="">Выберите день</option>
+                                <option value="Понедельник">Понедельник</option>
+                                <option value="Вторник">Вторник</option>
+                                <option value="Среда">Среда</option>
+                                <option value="Четверг">Четверг</option>
+                                <option value="Пятница">Пятница</option>
+                                <option value="Суббота">Суббота</option>
+                                <option value="Воскресенье">Воскресенье</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventTime">Время *</label>
+                            <input type="time" id="eventTime" class="form-control" required 
+                                   value="20:00">
+                        </div>
+                        <div class="form-group">
+                            <label for="eventServer">Сервер</label>
+                            <input type="text" id="eventServer" class="form-control" 
+                                   placeholder="VSG #1" value="VSG #1">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventDescription">Описание</label>
+                        <textarea id="eventDescription" class="form-control" rows="4" 
+                                  placeholder="Описание события..."></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventTeamA">Команда А (через запятую)</label>
+                            <input type="text" id="eventTeamA" class="form-control" 
+                                   placeholder="Альфа, Браво, Чарли">
+                        </div>
+                        <div class="form-group">
+                            <label for="eventTeamB">Команда Б (через запятую)</label>
+                            <input type="text" id="eventTeamB" class="form-control" 
+                                   placeholder="Дельта, Эхо, Фокстрот">
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-calendar-plus"></i> Добавить
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="adminClearForm('scheduleForm')">
+                            <i class="fas fa-times"></i> Очистить
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="data-list" id="scheduleListContainer">
+                <div class="data-list-header">
+                    <div>Событие</div>
+                    <div>День/Время</div>
+                    <div>Действия</div>
+                </div>
+                <div id="scheduleListContent">
+                    <!-- Список событий загружается динамически -->
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Рендеринг вкладки контента (правила, FAQ)
+async renderAdminContentTab() {
+    return `
+        <div id="tab-content" class="tab-content">
+            <div class="content-tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="adminSwitchContentTab('rules')">
+                        <i class="fas fa-gavel"></i> Правила
+                    </button>
+                    <button class="tab-btn" onclick="adminSwitchContentTab('faq')">
+                        <i class="fas fa-question-circle"></i> FAQ
+                    </button>
+                    <button class="tab-btn" onclick="adminSwitchContentTab('teams')">
+                        <i class="fas fa-users"></i> Команды
+                    </button>
+                </div>
+                
+                <div id="contentTabContent">
+                    <!-- Правила -->
+                    <div id="content-rules" class="content-tab active">
+                        <div class="admin-form">
+                            <h4><i class="fas fa-plus-circle"></i> Добавить правило</h4>
+                            <form id="rulesForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="ruleTitle">Название правила *</label>
+                                        <input type="text" id="ruleTitle" class="form-control" required 
+                                               placeholder="Например: Одна жизнь">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ruleIcon">Иконка</label>
+                                        <select id="ruleIcon" class="form-control">
+                                            <option value="skull">Череп</option>
+                                            <option value="headset">Гарнитура</option>
+                                            <option value="users">Люди</option>
+                                            <option value="shield-alt">Щит</option>
+                                            <option value="crosshairs">Прицел</option>
+                                            <option value="walkie-talkie">Рация</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="ruleDescription">Описание *</label>
+                                    <textarea id="ruleDescription" class="form-control" rows="5" required 
+                                              placeholder="Подробное описание правила..."></textarea>
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button type="submit" class="btn-primary">
+                                        <i class="fas fa-save"></i> Сохранить правило
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="data-list" id="rulesListContainer">
+                            <div class="data-list-header">
+                                <div>Правило</div>
+                                <div>Описание</div>
+                                <div>Действия</div>
+                            </div>
+                            <div id="rulesListContent">
+                                <!-- Список правил -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- FAQ -->
+                    <div id="content-faq" class="content-tab">
+                        <div class="admin-form">
+                            <h4><i class="fas fa-plus-circle"></i> Добавить FAQ</h4>
+                            <form id="faqForm">
+                                <div class="form-group">
+                                    <label for="faqQuestion">Вопрос *</label>
+                                    <input type="text" id="faqQuestion" class="form-control" required 
+                                           placeholder="Введите вопрос...">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="faqAnswer">Ответ *</label>
+                                    <textarea id="faqAnswer" class="form-control" rows="6" required 
+                                              placeholder="Введите ответ..."></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="faqOrder">Порядок отображения</label>
+                                    <input type="number" id="faqOrder" class="form-control" value="1" min="1">
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button type="submit" class="btn-primary">
+                                        <i class="fas fa-save"></i> Сохранить FAQ
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="data-list" id="faqListContainer">
+                            <div class="data-list-header">
+                                <div>Вопрос</div>
+                                <div>Ответ</div>
+                                <div>Действия</div>
+                            </div>
+                            <div id="faqListContent">
+                                <!-- Список FAQ -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Рендеринг вкладки пользователей
+async renderAdminUsersTab() {
+    return `
+        <div id="tab-users" class="tab-content">
+            <div class="admin-form">
+                <h4><i class="fas fa-search"></i> Поиск пользователей</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <input type="text" id="userSearch" class="form-control" 
+                               placeholder="Поиск по имени, email..." 
+                               onkeyup="adminSearchUsers(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <select id="userRoleFilter" class="form-control" onchange="adminFilterUsers()">
+                            <option value="">Все роли</option>
+                            <option value="admin">Администраторы</option>
+                            <option value="moderator">Модераторы</option>
+                            <option value="user">Пользователи</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Имя</th>
+                            <th>Email</th>
+                            <th>Роль</th>
+                            <th>Статус</th>
+                            <th>Дата регистрации</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <!-- Список пользователей загружается динамически -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="usersPagination">
+                <!-- Пагинация -->
+            </div>
+        </div>
+    `;
+}
+
+// Рендеринг вкладки команд
+async renderAdminTeamsTab() {
+    return `
+        <div id="tab-teams" class="tab-content">
+            <div class="admin-form">
+                <h4><i class="fas fa-plus-circle"></i> Создать команду</h4>
+                <form id="teamForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="teamName">Название команды *</label>
+                            <input type="text" id="teamName" class="form-control" required 
+                                   placeholder="Например: Альфа">
+                        </div>
+                        <div class="form-group">
+                            <label for="teamType">Тип команды</label>
+                            <select id="teamType" class="form-control">
+                                <option value="assault">Штурм</option>
+                                <option value="support">Поддержка</option>
+                                <option value="recon">Разведка</option>
+                                <option value="sniper">Снайперы</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="teamLeader">Командир</label>
+                            <input type="text" id="teamLeader" class="form-control" 
+                                   placeholder="Имя командира">
+                        </div>
+                        <div class="form-group">
+                            <label for="teamMaxSize">Макс. размер</label>
+                            <input type="number" id="teamMaxSize" class="form-control" 
+                                   value="12" min="1" max="50">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="teamDescription">Описание</label>
+                        <textarea id="teamDescription" class="form-control" rows="4" 
+                                  placeholder="Описание команды..."></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-users"></i> Создать команду
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="data-list" id="teamsListContainer">
+                <div class="data-list-header">
+                    <div>Команда</div>
+                    <div>Тип / Лидер</div>
+                    <div>Действия</div>
+                </div>
+                <div id="teamsListContent">
+                    <!-- Список команд -->
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Рендеринг вкладки настроек
+async renderAdminSettingsTab() {
+    const settings = await this.db.getSettings();
+    
+    return `
+        <div id="tab-settings" class="tab-content">
+            <div class="admin-form">
+                <h4><i class="fas fa-cogs"></i> Основные настройки</h4>
+                <form id="settingsForm">
+                    <div class="form-group">
+                        <label for="siteTitle">Название сайта *</label>
+                        <input type="text" id="siteTitle" class="form-control" required 
+                               value="${settings.siteTitle || CONFIG.SITE_TITLE}">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="newsLimit">Лимит новостей на странице</label>
+                            <input type="number" id="newsLimit" class="form-control" 
+                                   value="${settings.newsLimit || 10}" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label for="adminEmail">Email администратора</label>
+                            <input type="email" id="adminEmail" class="form-control" 
+                                   value="${settings.adminEmail || ''}" 
+                                   placeholder="admin@example.com">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="discordWebhook">Discord Webhook URL</label>
+                        <input type="url" id="discordWebhook" class="form-control" 
+                               value="${settings.discordWebhook || ''}" 
+                               placeholder="https://discord.com/api/webhooks/...">
+                    </div>
+                    
+                    <h5>Настройки доступа</h5>
+                    <div class="form-check">
+                        <input type="checkbox" id="maintenanceMode" class="form-check-input" 
+                               ${settings.maintenanceMode ? 'checked' : ''}>
+                        <label for="maintenanceMode">Режим технического обслуживания</label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="registrationEnabled" class="form-check-input" 
+                               ${settings.registrationEnabled === false ? '' : 'checked'}>
+                        <label for="registrationEnabled">Разрешить регистрацию</label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="emailVerification" class="form-check-input" 
+                               ${settings.emailVerification ? 'checked' : ''}>
+                        <label for="emailVerification">Требовать подтверждение email</label>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Сохранить настройки
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="adminResetSettings()">
+                            <i class="fas fa-undo"></i> Сбросить
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="admin-form">
+                <h4><i class="fas fa-palette"></i> Внешний вид</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="themeColor">Основной цвет</label>
+                        <input type="color" id="themeColor" class="form-control" 
+                               value="${settings.themeColor || '#8B0000'}">
+                    </div>
+                    <div class="form-group">
+                        <label for="backgroundColor">Фон</label>
+                        <input type="color" id="backgroundColor" class="form-control" 
+                               value="${settings.backgroundColor || '#000000'}">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Логотип сайта</label>
+                    <div class="image-upload">
+                        <input type="file" id="logoUpload" accept="image/*" 
+                               onchange="adminPreviewLogo(this)" style="display: none;">
+                        <div class="image-preview" id="logoPreview">
+                            <img src="${settings.logoUrl || '#'}" alt="Логотип" 
+                                 style="${settings.logoUrl ? '' : 'display: none;'}">
+                            <div id="logoPlaceholder" style="${settings.logoUrl ? 'display: none;' : ''}">
+                                <i class="fas fa-image fa-3x"></i>
+                                <p>Логотип не загружен</p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('logoUpload').click()">
+                            <i class="fas fa-upload"></i> Загрузить логотип
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-primary" onclick="adminSaveAppearance()">
+                        <i class="fas fa-save"></i> Сохранить оформление
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Рендеринг вкладки инструментов
+async renderAdminToolsTab() {
+    return `
+        <div id="tab-tools" class="tab-content">
+            <div class="tools-grid">
+                <div class="admin-form">
+                    <h4><i class="fas fa-database"></i> Управление базой данных</h4>
+                    <div class="form-group">
+                        <button class="btn-primary btn-block" onclick="adminExportFullDatabase()">
+                            <i class="fas fa-download"></i> Экспорт всей БД
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <input type="file" id="dbImport" accept=".json" style="display: none;" 
+                               onchange="adminImportDatabase(this)">
+                        <button class="btn-secondary btn-block" onclick="document.getElementById('dbImport').click()">
+                            <i class="fas fa-upload"></i> Импорт БД
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn-secondary btn-block" onclick="adminClearCache()">
+                            <i class="fas fa-broom"></i> Очистить кэш
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn-danger btn-block" onclick="adminResetDatabase()">
+                            <i class="fas fa-trash"></i> Сбросить БД
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="admin-form">
+                    <h4><i class="fas fa-chart-line"></i> Аналитика</h4>
+                    <div class="form-group">
+                        <button class="btn-secondary btn-block" onclick="adminGenerateReport()">
+                            <i class="fas fa-file-excel"></i> Сгенерировать отчет
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn-secondary btn-block" onclick="adminViewLogs()">
+                            <i class="fas fa-clipboard-list"></i> Просмотреть логи
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn-secondary btn-block" onclick="adminBackupNow()">
+                            <i class="fas fa-hdd"></i> Создать бекап
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="admin-form">
+                    <h4><i class="fas fa-user-shield"></i> Безопасность</h4>
+                    <div class="form-group">
+                        <button class="btn-secondary btn-block" onclick="adminChangePassword()">
+                            <i class="fas fa-key"></i> Сменить пароль
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn-secondary btn-block" onclick="adminViewSessions()">
+                            <i class="fas fa-user-clock"></i> Активные сессии
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn-secondary btn-block" onclick="adminAuditLog()">
+                            <i class="fas fa-history"></i> История действий
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-form">
+                <h4><i class="fas fa-terminal"></i> Системная информация</h4>
+                <div class="system-info">
+                    <div class="info-item">
+                        <span>Версия системы:</span>
+                        <strong>VSG 2.0</strong>
+                    </div>
+                    <div class="info-item">
+                        <span>База данных:</span>
+                        <strong>Firebase Firestore</strong>
+                    </div>
+                    <div class="info-item">
+                        <span>Пользователей:</span>
+                        <strong id="systemUsersCount">0</strong>
+                    </div>
+                    <div class="info-item">
+                        <span>Новостей:</span>
+                        <strong id="systemNewsCount">0</strong>
+                    </div>
+                    <div class="info-item">
+                        <span>Последнее обновление:</span>
+                        <strong id="systemLastUpdate">-</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Инициализация админ-табов
+initAdminTabs() {
+    // Основные вкладки
+    document.querySelectorAll('.tab-btn').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            const tabId = tab.getAttribute('data-tab');
+            if (tabId) {
+                adminSwitchTab(tabId);
+            }
+        });
+    });
+    
+    // Вкладки контента
+    document.querySelectorAll('.content-tab-btn').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            const tabId = tab.getAttribute('data-content-tab');
+            if (tabId) {
+                adminSwitchContentTab(tabId);
+            }
+        });
+    });
+}
+
+// Инициализация админ-форм
+initAdminForms() {
+    // Форма новостей
+    const newsForm = document.getElementById('newsForm');
+    if (newsForm) {
+        newsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleAddNews();
+        });
+    }
+    
+    // Форма расписания
+    const scheduleForm = document.getElementById('scheduleForm');
+    if (scheduleForm) {
+        scheduleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleAddSchedule();
+        });
+    }
+    
+    // Форма правил
+    const rulesForm = document.getElementById('rulesForm');
+    if (rulesForm) {
+        rulesForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleAddRule();
+        });
+    }
+    
+    // Форма FAQ
+    const faqForm = document.getElementById('faqForm');
+    if (faqForm) {
+        faqForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleAddFaq();
+        });
+    }
+    
+    // Форма команд
+    const teamForm = document.getElementById('teamForm');
+    if (teamForm) {
+        teamForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleAddTeam();
+        });
+    }
+    
+    // Форма настроек
+    const settingsForm = document.getElementById('settingsForm');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleSaveSettings();
+        });
+    }
+}
+
+// Загрузка данных для админ-панели
+async loadAdminData() {
+    // Загружаем новости
+    await this.loadAdminNews();
+    
+    // Загружаем расписание
+    await this.loadAdminSchedule();
+    
+    // Загружаем правила
+    await this.loadAdminRules();
+    
+    // Загружаем FAQ
+    await this.loadAdminFaq();
+    
+    // Загружаем команды
+    await this.loadAdminTeams();
+    
+    // Загружаем пользователей
+    await this.loadAdminUsers();
+    
+    // Обновляем системную информацию
+    await this.updateSystemInfo();
+}
+
+// Загрузка новостей для админ-панели
+async loadAdminNews() {
+    try {
+        const news = await this.db.getAllNews();
+        const container = document.getElementById('newsListContent');
+        
+        if (!container) return;
+        
+        if (news.length === 0) {
+            container.innerHTML = `
+                <div class="data-list-item">
+                    <div class="item-title">Новостей нет</div>
+                    <div class="item-date">-</div>
+                    <div class="item-actions">-</div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = news.map(item => `
+            <div class="data-list-item" data-id="${item.id}">
+                <div class="item-title">${item.title}</div>
+                <div class="item-date">${this.formatDate(item.date || item.createdAt)}</div>
+                <div class="item-actions">
+                    <button class="btn-icon btn-edit" onclick="adminEditNews('${item.id}')" title="Редактировать">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon btn-view" onclick="adminViewNews('${item.id}')" title="Просмотреть">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn-icon btn-delete" onclick="adminDeleteNews('${item.id}')" title="Удалить">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Ошибка загрузки новостей:', error);
+    }
+}
+
+// Загрузка расписания для админ-панели
+async loadAdminSchedule() {
+    try {
+        const schedule = await this.db.getAllSchedule();
+        const container = document.getElementById('scheduleListContent');
+        
+        if (!container) return;
+        
+        if (schedule.length === 0) {
+            container.innerHTML = `
+                <div class="data-list-item">
+                    <div class="item-title">Событий нет</div>
+                    <div class="item-date">-</div>
+                    <div class="item-actions">-</div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = schedule.map(item => `
+            <div class="data-list-item" data-id="${item.id}">
+                <div class="item-title">${item.title}</div>
+                <div class="item-date">${item.day} ${item.time}</div>
+                <div class="item-actions">
+                    <button class="btn-icon btn-edit" onclick="adminEditEvent('${item.id}')" title="Редактировать">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon btn-delete" onclick="adminDeleteEvent('${item.id}')" title="Удалить">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Ошибка загрузки расписания:', error);
+    }
+}
+
+// Загрузка правил для админ-панели
+async loadAdminRules() {
+    try {
+        const rules = await this.db.getAllRules();
+        const container = document.getElementById('rulesListContent');
+        
+        if (!container) return;
+        
+        if (rules.length === 0) {
+            container.innerHTML = `
+                <div class="data-list-item">
+                    <div>Правил нет</div>
+                    <div>-</div>
+                    <div class="item-actions">-</div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = rules.map(item => `
+            <div class="data-list-item" data-id="${item.id}">
+                <div>${item.title}</div>
+                <div>${item.description.substring(0, 50)}...</div>
+                <div class="item-actions">
+                    <button class="btn-icon btn-edit" onclick="adminEditRule('${item.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon btn-delete" onclick="adminDeleteRule('${item.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Ошибка загрузки правил:', error);
+    }
+}
+
+// Загрузка FAQ для админ-панели
+async loadAdminFaq() {
+    try {
+        const faq = await this.db.getAllFaq();
+        const container = document.getElementById('faqListContent');
+        
+        if (!container) return;
+        
+        if (faq.length === 0) {
+            container.innerHTML = `
+                <div class="data-list-item">
+                    <div>FAQ нет</div>
+                    <div>-</div>
+                    <div class="item-actions">-</div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = faq.map(item => `
+            <div class="data-list-item" data-id="${item.id}">
+                <div>${item.question}</div>
+                <div>${item.answer.substring(0, 50)}...</div>
+                <div class="item-actions">
+                    <button class="btn-icon btn-edit" onclick="adminEditFaq('${item.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon btn-delete" onclick="adminDeleteFaq('${item.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Ошибка загрузки FAQ:', error);
+    }
+}
+
+// Загрузка команд для админ-панели
+async loadAdminTeams() {
+    try {
+        const teams = await this.db.getAllTeams();
+        const container = document.getElementById('teamsListContent');
+        
+        if (!container) return;
+        
+        if (teams.length === 0) {
+            container.innerHTML = `
+                <div class="data-list-item">
+                    <div>Команд нет</div>
+                    <div>-</div>
+                    <div class="item-actions">-</div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = teams.map(item => `
+            <div class="data-list-item" data-id="${item.id}">
+                <div>${item.name}</div>
+                <div>${this.getTeamTypeLabel(item.type)} / ${item.leader || 'Нет лидера'}</div>
+                <div class="item-actions">
+                    <button class="btn-icon btn-edit" onclick="adminEditTeam('${item.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon btn-delete" onclick="adminDeleteTeam('${item.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Ошибка загрузки команд:', error);
+    }
+}
+
+// Загрузка пользователей для админ-панели
+async loadAdminUsers(page = 1, limit = 10) {
+    try {
+        const users = Object.values(this.db.cache.profiles || {});
+        const container = document.getElementById('usersTableBody');
+        const pagination = document.getElementById('usersPagination');
+        
+        if (!container) return;
+        
+        // Пагинация
+        const totalPages = Math.ceil(users.length / limit);
+        const startIndex = (page - 1) * limit;
+        const paginatedUsers = users.slice(startIndex, startIndex + limit);
+        
+        if (users.length === 0) {
+            container.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center;">Пользователей нет</td>
+                </tr>
+            `;
+            return;
+        }
+        
+        container.innerHTML = paginatedUsers.map(user => `
+            <tr data-id="${user.uid}">
+                <td>
+                    <strong>${user.username}</strong>
+                    ${user.isOnline ? '<span class="badge" style="background: #00FF00; margin-left: 5px;">Онлайн</span>' : ''}
+                </td>
+                <td>${user.email || 'Не указан'}</td>
+                <td>
+                    <select class="role-select" data-user="${user.uid}" onchange="adminChangeUserRole('${user.uid}', this.value)">
+                        <option value="user" ${user.role === 'user' ? 'selected' : ''}>Пользователь</option>
+                        <option value="moderator" ${user.role === 'moderator' ? 'selected' : ''}>Модератор</option>
+                        <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
+                    </select>
+                </td>
+                <td>
+                    <span class="badge" style="background: ${user.isOnline ? '#00FF00' : '#FF0000'}">
+                        ${user.isOnline ? 'Онлайн' : 'Офлайн'}
+                    </span>
+                </td>
+                <td>${this.formatDate(user.createdAt)}</td>
+                <td>
+                    <button class="btn-icon btn-edit" onclick="adminEditUser('${user.uid}')" title="Редактировать">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon btn-view" onclick="adminViewUser('${user.uid}')" title="Просмотреть">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${user.uid !== this.db.currentUser?.uid ? `
+                        <button class="btn-icon btn-delete" onclick="adminDeleteUser('${user.uid}')" title="Удалить">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : ''}
+                </td>
+            </tr>
+        `).join('');
+        
+        // Пагинация
+        if (pagination) {
+            let paginationHTML = '';
+            
+            if (page > 1) {
+                paginationHTML += `<button onclick="adminLoadUsers(${page - 1})">&laquo; Назад</button>`;
+            }
+            
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === page) {
+                    paginationHTML += `<button class="active">${i}</button>`;
+                } else if (i === 1 || i === totalPages || (i >= page - 2 && i <= page + 2)) {
+                    paginationHTML += `<button onclick="adminLoadUsers(${i})">${i}</button>`;
+                } else if (i === page - 3 || i === page + 3) {
+                    paginationHTML += `<button disabled>...</button>`;
+                }
+            }
+            
+            if (page < totalPages) {
+                paginationHTML += `<button onclick="adminLoadUsers(${page + 1})">Вперед &raquo;</button>`;
+            }
+            
+            pagination.innerHTML = paginationHTML;
+        }
+        
+    } catch (error) {
+        console.error('Ошибка загрузки пользователей:', error);
+    }
+}
+
+// Обновление системной информации
+async updateSystemInfo() {
+    try {
+        const news = await this.db.getAllNews();
+        const users = Object.values(this.db.cache.profiles || {});
+        
+        document.getElementById('systemUsersCount').textContent = users.length;
+        document.getElementById('systemNewsCount').textContent = news.length;
+        document.getElementById('systemLastUpdate').textContent = 
+            new Date().toLocaleString('ru-RU');
+            
+    } catch (error) {
+        console.error('Ошибка обновления системной информации:', error);
+    }
+}
+
+// ==============================================
+// ОБРАБОТЧИКИ ФОРМ АДМИН-ПАНЕЛИ
+// ==============================================
+
+// Добавление новости
+async handleAddNews() {
+    const title = document.getElementById('newsTitle').value;
+    const date = document.getElementById('newsDate').value;
+    const author = document.getElementById('newsAuthor').value;
+    const content = document.getElementById('newsContent').value;
+    const tags = document.getElementById('newsTags').value;
+    const isPinned = document.getElementById('newsPin').checked;
+    const sendNotification = document.getElementById('newsNotify').checked;
+    
+    if (!title || !content) {
+        this.notificationSystem.showNotification('Ошибка', 'Заполните обязательные поля', 'error');
+        return;
+    }
+    
+    try {
+        const newsData = {
+            title,
+            date,
+            author,
+            content,
+            tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+            isPinned,
+            views: 0,
+            likes: 0
+        };
+        
+        await this.db.addNews(newsData);
+        
+        // Очищаем форму
+        document.getElementById('newsForm').reset();
+        document.getElementById('newsDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('newsAuthor').value = this.db.currentUser?.displayName || 'Администратор';
+        
+        // Обновляем список новостей
+        await this.loadAdminNews();
+        
+        // Показываем уведомление
+        this.notificationSystem.showNotification(
+            'Успех',
+            'Новость успешно добавлена',
+            'success'
+        );
+        
+        // Отправляем уведомление пользователям если нужно
+        if (sendNotification) {
+            // Здесь можно добавить отправку уведомлений
+        }
+        
+    } catch (error) {
+        console.error('Ошибка добавления новости:', error);
+        this.notificationSystem.showNotification(
+            'Ошибка',
+            'Не удалось добавить новость',
+            'error'
+        );
+    }
+}
+
+// Добавление события в расписание
+async handleAddSchedule() {
+    const title = document.getElementById('eventTitle').value;
+    const day = document.getElementById('eventDay').value;
+    const time = document.getElementById('eventTime').value;
+    const server = document.getElementById('eventServer').value;
+    const description = document.getElementById('eventDescription').value;
+    const teamA = document.getElementById('eventTeamA').value;
+    const teamB = document.getElementById('eventTeamB').value;
+    
+    if (!title || !day || !time) {
+        this.notificationSystem.showNotification('Ошибка', 'Заполните обязательные поля', 'error');
+        return;
+    }
+    
+    try {
+        const scheduleData = {
+            title,
+            day,
+            time,
+            server,
+            description,
+            teamA: teamA.split(',').map(team => team.trim()).filter(team => team),
+            teamB: teamB.split(',').map(team => team.trim()).filter(team => team),
+            participants: [],
+            maxParticipants: 20
+        };
+        
+        await this.db.addSchedule(scheduleData);
+        
+        // Очищаем форму
+        document.getElementById('scheduleForm').reset();
+        document.getElementById('eventTime').value = '20:00';
+        document.getElementById('eventServer').value = 'VSG #1';
+        
+        // Обновляем список событий
+        await this.loadAdminSchedule();
+        
+        this.notificationSystem.showNotification(
+            'Успех',
+            'Событие добавлено в расписание',
+            'success'
+        );
+        
+    } catch (error) {
+        console.error('Ошибка добавления события:', error);
+        this.notificationSystem.showNotification(
+            'Ошибка',
+            'Не удалось добавить событие',
+            'error'
+        );
+    }
+}
+
+// Добавление правила
+async handleAddRule() {
+    const title = document.getElementById('ruleTitle').value;
+    const icon = document.getElementById('ruleIcon').value;
+    const description = document.getElementById('ruleDescription').value;
+    
+    if (!title || !description) {
+        this.notificationSystem.showNotification('Ошибка', 'Заполните обязательные поля', 'error');
+        return;
+    }
+    
+    try {
+        const ruleData = {
+            title,
+            icon,
+            description
+        };
+        
+        // Получаем текущие правила
+        const currentRules = await this.db.getAllRules();
+        
+        // Добавляем новое правило
+        const newRules = [...currentRules, {
+            ...ruleData,
+            id: `rule_${Date.now()}`
+        }];
+        
+        await this.db.saveRules(newRules);
+        
+        // Очищаем форму
+        document.getElementById('rulesForm').reset();
+        
+        // Обновляем список правил
+        await this.loadAdminRules();
+        
+        this.notificationSystem.showNotification(
+            'Успех',
+            'Правило успешно добавлено',
+            'success'
+        );
+        
+    } catch (error) {
+        console.error('Ошибка добавления правила:', error);
+        this.notificationSystem.showNotification(
+            'Ошибка',
+            'Не удалось добавить правило',
+            'error'
+        );
+    }
+}
+
+// Добавление FAQ
+async handleAddFaq() {
+    const question = document.getElementById('faqQuestion').value;
+    const answer = document.getElementById('faqAnswer').value;
+    const order = document.getElementById('faqOrder').value;
+    
+    if (!question || !answer) {
+        this.notificationSystem.showNotification('Ошибка', 'Заполните обязательные поля', 'error');
+        return;
+    }
+    
+    try {
+        const faqData = {
+            question,
+            answer,
+            order: parseInt(order) || 1
+        };
+        
+        await this.db.addFaq(faqData);
+        
+        // Очищаем форму
+        document.getElementById('faqForm').reset();
+        document.getElementById('faqOrder').value = 1;
+        
+        // Обновляем список FAQ
+        await this.loadAdminFaq();
+        
+        this.notificationSystem.showNotification(
+            'Успех',
+            'FAQ успешно добавлен',
+            'success'
+        );
+        
+    } catch (error) {
+        console.error('Ошибка добавления FAQ:', error);
+        this.notificationSystem.showNotification(
+            'Ошибка',
+            'Не удалось добавить FAQ',
+            'error'
+        );
+    }
+}
+
+// Добавление команды
+async handleAddTeam() {
+    const name = document.getElementById('teamName').value;
+    const type = document.getElementById('teamType').value;
+    const leader = document.getElementById('teamLeader').value;
+    const maxSize = document.getElementById('teamMaxSize').value;
+    const description = document.getElementById('teamDescription').value;
+    
+    if (!name) {
+        this.notificationSystem.showNotification('Ошибка', 'Введите название команды', 'error');
+        return;
+    }
+    
+    try {
+        const teamData = {
+            name,
+            type,
+            leader,
+            maxSize: parseInt(maxSize) || 12,
+            description,
+            size: 0,
+            members: []
+        };
+        
+        await this.db.addTeam(teamData);
+        
+        // Очищаем форму
+        document.getElementById('teamForm').reset();
+        document.getElementById('teamMaxSize').value = 12;
+        
+        // Обновляем список команд
+        await this.loadAdminTeams();
+        
+        this.notificationSystem.showNotification(
+            'Успех',
+            'Команда успешно создана',
+            'success'
+        );
+        
+    } catch (error) {
+        console.error('Ошибка добавления команды:', error);
+        this.notificationSystem.showNotification(
+            'Ошибка',
+            'Не удалось создать команду',
+            'error'
+        );
+    }
+}
+
+// Сохранение настроек
+async handleSaveSettings() {
+    const siteTitle = document.getElementById('siteTitle').value;
+    const newsLimit = document.getElementById('newsLimit').value;
+    const adminEmail = document.getElementById('adminEmail').value;
+    const discordWebhook = document.getElementById('discordWebhook').value;
+    const maintenanceMode = document.getElementById('maintenanceMode').checked;
+    const registrationEnabled = document.getElementById('registrationEnabled').checked;
+    const emailVerification = document.getElementById('emailVerification').checked;
+    
+    try {
+        const settingsData = {
+            siteTitle,
+            newsLimit: parseInt(newsLimit) || 10,
+            adminEmail,
+            discordWebhook,
+            maintenanceMode,
+            registrationEnabled,
+            emailVerification,
+            updatedAt: new Date().toISOString()
+        };
+        
+        await this.db.updateSettings(settingsData);
+        
+        // Обновляем заголовок страницы
+        document.title = siteTitle;
+        
+        this.notificationSystem.showNotification(
+            'Успех',
+            'Настройки успешно сохранены',
+            'success'
+        );
+        
+    } catch (error) {
+        console.error('Ошибка сохранения настроек:', error);
+        this.notificationSystem.showNotification(
+            'Ошибка',
+            'Не удалось сохранить настройки',
+            'error'
+        );
+    }
+}
                 
                 // Переключаем текущий вопрос
                 item.classList.toggle('active');
